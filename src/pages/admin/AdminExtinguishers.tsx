@@ -1,21 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import {
-  FireExtinguisher,
-  Plus,
-  Pencil,
-  Trash2,
-  Search,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  ShieldCheck,
-  AlertTriangle,
-  XCircle,
-  CalendarClock,
-  MapPin,
-  X,
-  Gauge,
-} from 'lucide-react';
+import { FireExtinguisher, Plus, Pencil, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, TriangleAlert as AlertTriangle, Circle as XCircle, CalendarClock, MapPin, X, Gauge } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Station, Extinguisher } from '@/lib/types';
 import { Modal } from '@/components/Modal';
@@ -355,9 +339,8 @@ export function AdminExtinguishers() {
     }
     const dir = sortDir === 'asc' ? 1 : -1;
     const sorted = [...result].sort((a, b) => {
-      let av: string | number | boolean | null = a[sortField];
-      let bv: string | number | boolean | null = b[sortField];
-      if (sortField === 'station_name') { av = a.station?.name || ''; bv = b.station?.name || ''; }
+      let av: string | number | boolean | null = sortField === 'station_name' ? a.station?.name || '' : a[sortField];
+      let bv: string | number | boolean | null = sortField === 'station_name' ? b.station?.name || '' : b[sortField];
       if (av == null) av = '';
       if (bv == null) bv = '';
       if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv) * dir;
@@ -436,8 +419,8 @@ export function AdminExtinguishers() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[220px]">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             value={search}
@@ -651,7 +634,7 @@ export function AdminExtinguishers() {
                         </button>
                         <button
                           onClick={() => handleDelete(e)}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
                           title="Supprimer"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -683,7 +666,7 @@ export function AdminExtinguishers() {
         maxWidth="lg"
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Station *</label>
               <select

@@ -1,19 +1,20 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import {
-  Building2, Plus, Pencil, Trash2, MapPin, Flame, XCircle,
-  CheckCircle2, Circle, LayoutGrid, Wrench, Droplets, ShoppingBag, Zap, Fuel, Plug,
-  Search, X, ChevronRight, Building, Crosshair, UserCircle, Layers,
-} from 'lucide-react';
+import { Building2, Plus, Pencil, Trash2, MapPin, Flame, Circle as XCircle, CircleCheck as CheckCircle2, Circle, LayoutGrid, Wrench, Droplets, ShoppingBag, Zap, Fuel, Plug, Search, X, ChevronRight, Building, Crosshair, CircleUser as UserCircle, Layers, UserCog } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import type { Station } from '@/lib/types';
+import type { Station, StationRegion, CdsPerson } from '@/lib/types';
 import { Modal } from '@/components/Modal';
+import { RegionComplianceChart } from '@/components/RegionComplianceChart';
+import { ExtinguisherRegionChart } from '@/components/ExtinguisherRegionChart';
 import { cn } from '@/lib/utils';
+import { GUINEA_CITIES } from '@/lib/constants';
+import type { StationCompliance } from '@/lib/types';
 
 type StationForm = {
   code: string;
   name: string;
-  address: string;
   city: string;
+  region: StationRegion | '';
+  cds: string;
   track_islands: number;
   has_service_bay: boolean;
   has_wash_bay: boolean;
@@ -23,11 +24,14 @@ type StationForm = {
   has_generator_room: boolean;
 };
 
+const REGIONS: StationRegion[] = ['MG', 'BG', 'GF', 'HG', 'Conakry'];
+
 const emptyForm: StationForm = {
   code: '',
   name: '',
-  address: '',
   city: '',
+  region: '',
+  cds: '',
   track_islands: 0,
   has_service_bay: false,
   has_wash_bay: false,
@@ -114,12 +118,26 @@ export function AdminStations() {
   const [stations, setStations] = useState<(Station & { ext_count: number; manager_name: string | null })[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterRegion, setFilterRegion] = useState<string>('all');
+  const [filterCds, setFilterCds] = useState<string>('all');
+  const [filterCity, setFilterCity] = useState<string>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Station | null>(null);
   const [form, setForm] = useState<StationForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cdsPersons, setCdsPersons] = useState<CdsPerson[]>([]);
+  const [cdsModalOpen, setCdsModalOpen] = useState(false);
+  const [newCdsName, setNewCdsName] = useState('');
+  const [cdsSaving, setCdsSaving] = useState(false);
+  const [cdsError, setCdsError] = useState<string | null>(null);
+  const [compliance, setCompliance] = useState<StationCompliance[]>([]);
+
+  const loadCdsPersons = useCallback(async () => {
+    const { data } = await supabase.from('cds_persons').select('*').order('name');
+    setCdsPersons((data as CdsPerson[]) || []);
+  }, []);
 
   const loadStations = useCallback(async () => {
     setLoading(true);
@@ -152,9 +170,16 @@ export function AdminStations() {
     setLoading(false);
   }, []);
 
+  const loadCompliance = useCallback(async () => {
+    const { data } = await supabase.from('station_compliance').select('*');
+    setCompliance((data as StationCompliance[]) || []);
+  }, []);
+
   useEffect(() => {
     loadStations();
-  }, [loadStations]);
+    loadCdsPersons();
+    loadCompliance();
+  }, [loadStations, loadCdsPersons, loadCompliance]);
 
   const openCreate = () => {
     setEditing(null);
@@ -168,8 +193,9 @@ export function AdminStations() {
     setForm({
       code: s.code || '',
       name: s.name,
-      address: s.address || '',
       city: s.city || '',
+      region: s.region || '',
+      cds: s.cds || '',
       track_islands: s.track_islands,
       has_service_bay: s.has_service_bay,
       has_wash_bay: s.has_wash_bay,
@@ -196,8 +222,9 @@ export function AdminStations() {
     const payload = {
       code: form.code.trim(),
       name: form.name.trim(),
-      address: form.address.trim() || null,
       city: form.city.trim() || null,
+      region: form.region || null,
+      cds: form.cds || null,
       track_islands: form.track_islands,
       has_service_bay: form.has_service_bay,
       has_wash_bay: form.has_wash_bay,
@@ -225,17 +252,58 @@ export function AdminStations() {
     await loadStations();
   };
 
+  const handleAddCds = async () => {
+    if (!newCdsName.trim()) { setCdsError('Le nom est requis'); return; }
+    setCdsSaving(true);
+    setCdsError(null);
+    const { error: err } = await supabase.from('cds_persons').insert({ name: newCdsName.trim() });
+    if (err) {
+      if (err.code === '23505') setCdsError('Cette personne existe déjà');
+      else setCdsError(err.message);
+      setCdsSaving(false);
+      return;
+    }
+    setNewCdsName('');
+    setCdsSaving(false);
+    await loadCdsPersons();
+  };
+
+  const handleDeleteCds = async (p: CdsPerson) => {
+    if (!confirm(`Supprimer "${p.name}" de la liste CDS ?`)) return;
+    await supabase.from('cds_persons').delete().eq('id', p.id);
+    await loadCdsPersons();
+  };
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return stations;
+    let result = stations;
+    if (filterRegion !== 'all') result = result.filter((s) => (s.region || '') === filterRegion);
+    if (filterCds !== 'all') result = result.filter((s) => (s.cds || '') === filterCds);
+    if (filterCity !== 'all') result = result.filter((s) => (s.city || '') === filterCity);
+    if (!search.trim()) return result;
     const q = search.trim().toLowerCase();
-    return stations.filter((s) =>
+    return result.filter((s) =>
       s.name.toLowerCase().includes(q) ||
       s.code.toLowerCase().includes(q) ||
       (s.city || '').toLowerCase().includes(q) ||
-      (s.address || '').toLowerCase().includes(q) ||
-      (s.manager_name || '').toLowerCase().includes(q),
+      (s.manager_name || '').toLowerCase().includes(q) ||
+      (s.region || '').toLowerCase().includes(q) ||
+      (s.cds || '').toLowerCase().includes(q),
     );
-  }, [stations, search]);
+  }, [stations, search, filterRegion, filterCds, filterCity]);
+
+  const cityOptions = useMemo(() => GUINEA_CITIES as readonly string[], []);
+  const cdsOptions = useMemo(
+    () => Array.from(new Set(stations.map((s) => s.cds).filter(Boolean) as string[])).sort(),
+    [stations],
+  );
+
+  const activeFiltersCount = [filterRegion !== 'all', filterCds !== 'all', filterCity !== 'all', search].filter(Boolean).length;
+  const resetFilters = () => {
+    setFilterRegion('all');
+    setFilterCds('all');
+    setFilterCity('all');
+    setSearch('');
+  };
 
   const selected = useMemo(
     () => stations.find((s) => s.id === selectedId) || null,
@@ -282,13 +350,22 @@ export function AdminStations() {
               <p className="text-slate-400 mt-0.5 text-sm">Gestion du parc et de l'infrastructure</p>
             </div>
           </div>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 font-medium text-slate-900 shadow-lg hover:bg-slate-50 hover:scale-[1.02] transition-all"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nouvelle station</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCdsModalOpen(true)}
+              className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 font-medium text-white ring-1 ring-white/15 hover:bg-white/15 hover:scale-[1.02] transition-all"
+            >
+              <UserCog className="h-4 w-4" />
+              <span className="hidden sm:inline">CDS</span>
+            </button>
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 font-medium text-slate-900 shadow-lg hover:bg-slate-50 hover:scale-[1.02] transition-all"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nouvelle station</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -300,9 +377,9 @@ export function AdminStations() {
         <SummaryStat icon={Crosshair} label="Moyenne par station" value={stats.avgExt} sublabel="extincteurs / station" gradient="bg-gradient-to-br from-amber-500 to-orange-600" />
       </div>
 
-      {/* Search bar */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-md">
+      {/* Search & filter bar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             value={search}
@@ -311,13 +388,43 @@ export function AdminStations() {
             className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-sm text-slate-700 focus:border-red-400 focus:ring-4 focus:ring-red-500/10 outline-none transition"
           />
         </div>
-        {search && (
+        <select
+          value={filterRegion}
+          onChange={(e) => setFilterRegion(e.target.value)}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-red-400 focus:ring-2 focus:ring-red-500/10 outline-none transition cursor-pointer"
+        >
+          <option value="all">Toutes les régions</option>
+          {REGIONS.map((r) => (
+            <option key={r} value={r}>{r}</option>
+          ))}
+        </select>
+        <select
+          value={filterCds}
+          onChange={(e) => setFilterCds(e.target.value)}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-red-400 focus:ring-2 focus:ring-red-500/10 outline-none transition cursor-pointer"
+        >
+          <option value="all">Tous les CDS</option>
+          {cdsOptions.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        <select
+          value={filterCity}
+          onChange={(e) => setFilterCity(e.target.value)}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-red-400 focus:ring-2 focus:ring-red-500/10 outline-none transition cursor-pointer"
+        >
+          <option value="all">Toutes les villes</option>
+          {cityOptions.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        {activeFiltersCount > 0 && (
           <button
-            onClick={() => setSearch('')}
+            onClick={resetFilters}
             className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors"
           >
             <X className="h-3.5 w-3.5" />
-            Effacer
+            Réinitialiser ({activeFiltersCount})
           </button>
         )}
       </div>
@@ -378,7 +485,13 @@ export function AdminStations() {
                     </div>
                     <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
                       <MapPin className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">{s.city || 'Ville non renseignée'}{s.address ? ` · ${s.address}` : ''}</span>
+                      <span className="truncate">{s.city || 'Ville non renseignée'}</span>
+                      {s.region && (
+                        <span className="ml-1 inline-flex items-center rounded-md bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 whitespace-nowrap">{s.region}</span>
+                      )}
+                      {s.cds && (
+                        <span className="ml-1 inline-flex items-center rounded-md bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 whitespace-nowrap">CDS: {s.cds}</span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -490,7 +603,13 @@ export function AdminStations() {
                   </div>
                   <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
                     <MapPin className="h-3 w-3" />
-                    {selected.address || 'Adresse non renseignée'}{selected.city ? ` · ${selected.city}` : ''}
+                    {selected.city || 'Ville non renseignée'}
+                    {selected.region && (
+                      <span className="ml-1 inline-flex items-center rounded-md bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200 ring-1 ring-white/15">{selected.region}</span>
+                    )}
+                    {selected.cds && (
+                      <span className="ml-1 inline-flex items-center rounded-md bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-blue-200 ring-1 ring-blue-400/20 whitespace-nowrap">CDS: {selected.cds}</span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -597,8 +716,8 @@ export function AdminStations() {
         maxWidth="lg"
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Code station *</label>
                 <input
@@ -619,22 +738,43 @@ export function AdminStations() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Adresse</label>
-              <input
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition"
-                placeholder="12 Avenue des Lilas"
-              />
-            </div>
-            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Ville</label>
-              <input
+              <select
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition"
-                placeholder="Lille"
-              />
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition bg-white"
+              >
+                <option value="">Sélectionner…</option>
+                {GUINEA_CITIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Région</label>
+              <select
+                value={form.region}
+                onChange={(e) => setForm({ ...form, region: e.target.value as StationRegion | '' })}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition bg-white"
+              >
+                <option value="">Sélectionner…</option>
+                {REGIONS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">CDS (suivi des ventes)</label>
+              <select
+                value={form.cds}
+                onChange={(e) => setForm({ ...form, cds: e.target.value })}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition bg-white"
+              >
+                <option value="">Aucun</option>
+                {cdsPersons.map((p) => (
+                  <option key={p.id} value={p.name}>{p.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -642,7 +782,7 @@ export function AdminStations() {
           <div className="rounded-xl bg-slate-50/70 border border-slate-100 p-4 space-y-4">
             <p className="text-sm font-semibold text-slate-700">Infrastructure de la station</p>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Nombre d'îlots sur la piste</label>
                 <input
@@ -719,6 +859,69 @@ export function AdminStations() {
           </div>
         </div>
       </Modal>
+
+      {/* CDS persons management modal */}
+      <Modal
+        open={cdsModalOpen}
+        onClose={() => { setCdsModalOpen(false); setNewCdsName(''); setCdsError(null); }}
+        title="Personnes CDS"
+        maxWidth="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Gérez la liste des personnes chargées du suivi des ventes. Ces personnes apparaîtront dans le menu déroulant CDS du formulaire de station.
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={newCdsName}
+              onChange={(e) => setNewCdsName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAddCds(); }}
+              placeholder="Nom de la personne…"
+              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition"
+            />
+            <button
+              onClick={handleAddCds}
+              disabled={cdsSaving}
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-red-500/20 hover:brightness-110 transition disabled:opacity-60 whitespace-nowrap"
+            >
+              <Plus className="h-4 w-4" />
+              Ajouter
+            </button>
+          </div>
+          {cdsError && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{cdsError}</div>
+          )}
+          <div className="space-y-1.5 max-h-64 overflow-y-auto">
+            {cdsPersons.length === 0 ? (
+              <p className="text-center py-6 text-sm text-slate-400">Aucune personne CDS enregistrée.</p>
+            ) : (
+              cdsPersons.map((p) => (
+                <div key={p.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 flex-shrink-0">
+                      <UserCog className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">{p.name}</span>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteCds(p)}
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    title="Supprimer"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Region compliance chart */}
+      <RegionComplianceChart compliance={compliance} />
+
+      {/* Extinguisher region chart */}
+      <ExtinguisherRegionChart />
     </div>
   );
 }

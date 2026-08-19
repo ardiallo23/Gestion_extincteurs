@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
     if (error) {
       console.error('Error loading profile:', error);
+      setProfile(null);
       return;
     }
     setProfile(data as Profile | null);
@@ -42,8 +43,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (s?.user) {
         loadProfile(s.user.id).finally(() => mounted && setLoading(false));
       } else {
+        setProfile(null);
         setLoading(false);
       }
+    }).catch((error: unknown) => {
+      console.error('Error loading session:', error);
+      if (!mounted) return;
+      setSession(null);
+      setProfile(null);
+      setLoading(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {

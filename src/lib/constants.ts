@@ -1,13 +1,15 @@
 export const DEMO_CREDENTIALS = [
   { label: 'Administrateur (siège)', email: 'admin@stations.fr', password: 'Admin123!' },
-  { label: 'Station Nord (Lille)', email: 'gerant.nord@stations.fr', password: 'Gerant123!', code: 'ST-001' },
-  { label: 'Station Sud (Marseille)', email: 'gerant.sud@stations.fr', password: 'Gerant123!', code: 'ST-002' },
-  { label: 'Station Est (Strasbourg)', email: 'gerant.est@stations.fr', password: 'Gerant123!', code: 'ST-003' },
-  { label: 'Station Ouest (Nantes)', email: 'gerant.ouest@stations.fr', password: 'Gerant123!', code: 'ST-004' },
+  { label: 'Station Nord (Kankan)', email: 'gerant.nord@stations.fr', password: 'Gerant123!', code: 'ST-001' },
+  { label: 'Station Sud (Nzérékoré)', email: 'gerant.sud@stations.fr', password: 'Gerant123!', code: 'ST-002' },
+  { label: 'Station Est (Siguiri)', email: 'gerant.est@stations.fr', password: 'Gerant123!', code: 'ST-003' },
+  { label: 'Station Ouest (Boké)', email: 'gerant.ouest@stations.fr', password: 'Gerant123!', code: 'ST-004' },
   { label: 'Technicien (lecture seule)', email: 'technicien@stations.fr', password: 'Tech123!' },
 ];
 
 export const INSPECTION_WARNING_DAYS = 30;
+
+export const EXPIRATION_ALERT_DAYS = 90;
 
 export const EXTINGUISHER_VALIDITY_DAYS = 365;
 
@@ -26,3 +28,31 @@ export const EXTINGUISHER_LOCATIONS = [
 ] as const;
 
 export const EXTINGUISHER_CAPACITIES = ['6kg', '9kg', '50kg', '5kg', '9L'] as const;
+
+export const GUINEA_CITIES = [
+  'Conakry',
+  'Kankan',
+  'Kindia',
+  'Nzérékoré',
+  'Labé',
+  'Mamou',
+  'Boké',
+  'Faranah',
+  'Koundara',
+  'Dabola',
+  'Dinguiraye',
+  'Gaoual',
+  'Kérouané',
+  'Lola',
+  'Macenta',
+  'Pita',
+  'Siguiri',
+  'Télimélé',
+  'Tougué',
+  'Yomou',
+  'Dubréka',
+  'Forécariah',
+  'Coyah',
+  'Koubia',
+  'Mali',
+] as const;

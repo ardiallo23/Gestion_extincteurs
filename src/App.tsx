@@ -9,10 +9,7 @@ import { AdminExtinguishers } from '@/pages/admin/AdminExtinguishers';
 import { AdminCompliance } from '@/pages/admin/AdminCompliance';
 import { AdminUsers } from '@/pages/admin/AdminUsers';
 import { AdminHistory } from '@/pages/admin/AdminHistory';
-import { ManagerDashboard } from '@/pages/manager/ManagerDashboard';
-import { ManagerDailyCheck } from '@/pages/manager/ManagerDailyCheck';
 import { ManagerExtinguishers } from '@/pages/manager/ManagerExtinguishers';
-import { ManagerHistory } from '@/pages/manager/ManagerHistory';
 import { supabase } from '@/lib/supabase';
 import type { Station } from '@/lib/types';
 
@@ -39,10 +36,10 @@ function AppContent() {
 
   // Reset to appropriate page when switching users
   useEffect(() => {
-    setPage(profile?.role === 'technician' ? 'compliance' : 'dashboard');
+    setPage(profile?.role === 'technician' ? 'compliance' : profile?.role === 'manager' ? 'extinguishers' : 'dashboard');
   }, [profile?.id]);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <LoginPage />;
 
   if (!session || !profile) return <LoginPage />;
 
@@ -71,18 +68,7 @@ function AppContent() {
           return <AdminDashboard onNavigate={setPage} />;
       }
     } else {
-      switch (page) {
-        case 'dashboard':
-          return <ManagerDashboard onNavigate={setPage} />;
-        case 'daily-check':
-          return <ManagerDailyCheck />;
-        case 'extinguishers':
-          return <ManagerExtinguishers />;
-        case 'history':
-          return <ManagerHistory />;
-        default:
-          return <ManagerDashboard onNavigate={setPage} />;
-      }
+      return <ManagerExtinguishers />;
     }
   };
 

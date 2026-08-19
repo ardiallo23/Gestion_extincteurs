@@ -1,10 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import {
-  ShieldCheck, ShieldAlert, Building2, MapPin, LayoutGrid, Zap, Wrench,
-  Droplets, Fuel, Plug, ShoppingBag, Flame, ChevronDown, ChevronRight, CheckCircle2, XCircle,
-  BarChart3, TrendingDown, TrendingUp, AlertTriangle, Gauge, Layers, ArrowUpDown,
-  Printer, FileCheck, Calendar, Lightbulb, Flag, ListChecks, Scale,
-} from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Building2, MapPin, LayoutGrid, Zap, Wrench, Droplets, Fuel, Plug, ShoppingBag, Flame, ChevronDown, ChevronRight, CircleCheck as CheckCircle2, Circle as XCircle, ChartBar as BarChart3, TrendingDown, TrendingUp, TriangleAlert as AlertTriangle, Gauge, Layers, ArrowUpDown, Printer, FileCheck, Calendar, Lightbulb, Flag, ListChecks, Scale } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import type { StationCompliance } from '@/lib/types';
@@ -105,7 +100,7 @@ export function AdminCompliance() {
   const rateHex = complianceRate >= 80 ? '#059669' : complianceRate >= 50 ? '#d97706' : '#dc2626';
 
   const stationDetailHeader = (
-    <div className="relative z-10 flex items-center gap-3 flex-shrink-0">
+    <div className="relative z-10 flex items-center gap-3 flex-shrink-0 flex-wrap">
       <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
         {compliance.length} station{compliance.length > 1 ? 's' : ''}
       </span>
@@ -299,7 +294,7 @@ export function AdminCompliance() {
                 <button
                   type="button"
                   onClick={() => toggle(c.station_id)}
-                  className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50/50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-slate-50/50 transition-colors text-left"
                 >
                   {/* Chevron */}
                   <div className="flex-shrink-0">
@@ -332,15 +327,15 @@ export function AdminCompliance() {
                   </div>
 
                   {/* Score + badge */}
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <span className={cn(
-                      'text-lg font-bold tabular-nums',
+                      'text-base sm:text-lg font-bold tabular-nums',
                       allOk ? 'text-emerald-600' : pctColor === 'red' ? 'text-red-600' : 'text-amber-600',
                     )}>
-                      {passed}<span className="text-slate-300 text-sm font-normal">/{RULES.length}</span>
+                      {passed}<span className="text-slate-300 text-xs sm:text-sm font-normal">/{RULES.length}</span>
                     </span>
                     <span className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all',
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap',
                       allOk
                         ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60'
                         : pctColor === 'red'
@@ -365,7 +360,7 @@ export function AdminCompliance() {
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t border-slate-100 px-5 py-4 space-y-2 fade-in-scale">
+                  <div className="border-t border-slate-100 px-4 sm:px-5 py-4 space-y-2 fade-in-scale">
                     {RULES.map((rule) => {
                       const Icon = rule.icon;
                       const expected = c[rule.expectedField] as number;
@@ -396,7 +391,7 @@ export function AdminCompliance() {
                             <Icon className={cn('h-4 w-4', ok ? 'text-slate-500' : short ? 'text-red-600' : 'text-amber-600')} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
                               <p className={cn('text-sm font-medium', ok ? 'text-slate-700' : short ? 'text-red-700' : 'text-amber-700')}>
                                 {rule.label}
                               </p>

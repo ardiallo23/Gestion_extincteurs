@@ -34,27 +34,27 @@ export function Modal({ open, onClose, title, children, maxWidth = 'md' }: Modal
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]"
         onClick={onClose}
       />
       <div
         className={cn(
-          'relative w-full rounded-2xl bg-white shadow-2xl animate-[slideUp_0.2s_ease-out]',
+          'relative w-full rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl animate-[slideUp_0.2s_ease-out] max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col',
           maxWidthMap[maxWidth],
         )}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 sm:px-6 py-4 flex-shrink-0">
+          <h2 className="text-base sm:text-lg font-semibold text-slate-900 truncate pr-2">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors flex-shrink-0"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="px-6 py-5 max-h-[70vh] overflow-y-auto">{children}</div>
+        <div className="px-4 sm:px-6 py-5 overflow-y-auto">{children}</div>
       </div>
     </div>
   );

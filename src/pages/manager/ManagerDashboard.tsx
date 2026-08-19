@@ -1,17 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import {
-  Flame,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  CalendarClock,
-  ArrowRight,
-  ClipboardCheck,
-} from 'lucide-react';
+import { Flame, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle2, Circle as XCircle, CalendarClock, ArrowRight, ClipboardCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import type { ExtinguisherWithStatus, ExtinguisherLiveStatus } from '@/lib/types';
 import { BlinkingDot } from '@/components/BlinkingDot';
+import { ExpirationAlerts } from '@/components/ExpirationAlerts';
 import { cn, formatDate, daysUntil, inspectionState } from '@/lib/utils';
 import { INSPECTION_WARNING_DAYS } from '@/lib/constants';
 import type { PageKey } from '@/components/Layout';
@@ -161,6 +154,9 @@ export function ManagerDashboard({ onNavigate }: { onNavigate: (page: PageKey) =
           </div>
         </div>
       )}
+
+      {/* Expiration alerts — 3 months ahead */}
+      <ExpirationAlerts extinguishers={extinguishers} />
 
       {/* Extinguisher grid */}
       <div>

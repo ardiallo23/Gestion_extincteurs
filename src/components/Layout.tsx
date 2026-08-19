@@ -9,7 +9,6 @@ import {
   LogOut,
   Menu,
   X,
-  ClipboardCheck,
   MapPin,
   ShieldCheck,
 } from 'lucide-react';
@@ -59,10 +58,7 @@ export function Layout({ children, currentPage, onNavigate, stationName }: Layou
         { key: 'history', label: 'Historique', icon: History },
       ]
     : [
-        { key: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-        { key: 'daily-check', label: 'Saisie quotidienne', icon: ClipboardCheck },
         { key: 'extinguishers', label: 'Extincteurs', icon: FireExtinguisher },
-        { key: 'history', label: 'Historique', icon: History },
       ];
 
   const handleNav = (key: PageKey) => {

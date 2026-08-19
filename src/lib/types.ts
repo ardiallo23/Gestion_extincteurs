@@ -9,12 +9,16 @@ export interface Profile {
   created_at: string;
 }
 
+export type StationRegion = 'MG' | 'BG' | 'GF' | 'HG' | 'Conakry';
+
 export interface Station {
   id: string;
   code: string;
   name: string;
   address: string | null;
   city: string | null;
+  region: StationRegion | null;
+  cds: string | null;
   track_islands: number;
   has_service_bay: boolean;
   has_wash_bay: boolean;
@@ -22,6 +26,12 @@ export interface Station {
   electrical_cabinets: number;
   has_depotting_zone: boolean;
   has_generator_room: boolean;
+  created_at: string;
+}
+
+export interface CdsPerson {
+  id: string;
+  name: string;
   created_at: string;
 }
 
@@ -84,6 +94,7 @@ export interface StationCompliance {
   station_id: string;
   station_name: string;
   station_city: string | null;
+  station_region: StationRegion | null;
   r1_expected: number;
   r1_actual: number;
   r2_expected: number;
