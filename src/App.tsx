@@ -42,7 +42,7 @@ function AppContent() {
     setPage(profile?.role === 'technician' ? 'compliance' : 'dashboard');
   }, [profile?.id]);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <LoginPage />;
 
   if (!session || !profile) return <LoginPage />;
 
