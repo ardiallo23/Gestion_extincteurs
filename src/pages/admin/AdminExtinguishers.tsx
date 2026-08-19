@@ -1,21 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import {
-  FireExtinguisher,
-  Plus,
-  Pencil,
-  Trash2,
-  Search,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  ShieldCheck,
-  AlertTriangle,
-  XCircle,
-  CalendarClock,
-  MapPin,
-  X,
-  Gauge,
-} from 'lucide-react';
+import { FireExtinguisher, Plus, Pencil, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, TriangleAlert as AlertTriangle, Circle as XCircle, CalendarClock, MapPin, X, Gauge } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Station, Extinguisher } from '@/lib/types';
 import { Modal } from '@/components/Modal';
@@ -355,9 +339,8 @@ export function AdminExtinguishers() {
     }
     const dir = sortDir === 'asc' ? 1 : -1;
     const sorted = [...result].sort((a, b) => {
-      let av: string | number | boolean | null = a[sortField];
-      let bv: string | number | boolean | null = b[sortField];
-      if (sortField === 'station_name') { av = a.station?.name || ''; bv = b.station?.name || ''; }
+      let av: string | number | boolean | null = sortField === 'station_name' ? a.station?.name || '' : a[sortField];
+      let bv: string | number | boolean | null = sortField === 'station_name' ? b.station?.name || '' : b[sortField];
       if (av == null) av = '';
       if (bv == null) bv = '';
       if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv) * dir;
