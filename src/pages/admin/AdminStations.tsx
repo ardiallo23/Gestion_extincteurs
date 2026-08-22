@@ -141,7 +141,7 @@ export function AdminStations() {
 
   const loadStations = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from('stations').select('*').order('name');
+    const { data, error: stationsError } = await supabase.from('stations').select('*').order('name');
     const { data: extData } = await supabase
       .from('extinguishers')
       .select('station_id, id')
@@ -150,6 +150,10 @@ export function AdminStations() {
       .from('profiles')
       .select('id, full_name, station_id, role')
       .eq('role', 'manager');
+
+    if (stationsError) {
+      setError(`Impossible de charger les stations : ${stationsError.message}`);
+    }
 
     const extCount = new Map<string, number>();
     extData?.forEach((e: any) => {
@@ -219,26 +223,29 @@ export function AdminStations() {
     }
     setSaving(true);
     setError(null);
-    const payload = {
-      code: form.code.trim(),
-      name: form.name.trim(),
-      city: form.city.trim() || null,
-      region: form.region || null,
-      cds: form.cds || null,
-      track_islands: form.track_islands,
-      has_service_bay: form.has_service_bay,
-      has_wash_bay: form.has_wash_bay,
-      has_shop: form.has_shop,
-      electrical_cabinets: form.electrical_cabinets,
-      has_depotting_zone: form.has_depotting_zone,
-      has_generator_room: form.has_generator_room,
-    };
-    if (editing) {
-      const { error: err } = await supabase.from('stations').update(payload).eq('id', editing.id);
-      if (err) { setError(err.message); setSaving(false); return; }
-    } else {
-      const { error: err } = await supabase.from('stations').insert(payload);
-      if (err) { setError(err.message); setSaving(false); return; }
+    const { error: err } = await supabase.rpc('admin_save_station', {
+      p_station_id: editing?.id || null,
+      p_code: form.code.trim(),
+      p_name: form.name.trim(),
+      p_city: form.city.trim() || null,
+      p_region: form.region || null,
+      p_cds: form.cds || null,
+      p_track_islands: form.track_islands,
+      p_has_service_bay: form.has_service_bay,
+      p_has_wash_bay: form.has_wash_bay,
+      p_has_shop: form.has_shop,
+      p_electrical_cabinets: form.electrical_cabinets,
+      p_has_depotting_zone: form.has_depotting_zone,
+      p_has_generator_room: form.has_generator_room,
+    });
+    if (err) {
+      setError(err.code === '23505'
+        ? 'Ce code station est déjà utilisé.'
+        : editing
+          ? 'Impossible de modifier la station. Vérifiez vos informations et réessayez.'
+          : 'Impossible de créer la station. Vérifiez vos informations et réessayez.');
+      setSaving(false);
+      return;
     }
     setSaving(false);
     setModalOpen(false);
@@ -259,7 +266,7 @@ export function AdminStations() {
     const { error: err } = await supabase.from('cds_persons').insert({ name: newCdsName.trim() });
     if (err) {
       if (err.code === '23505') setCdsError('Cette personne existe déjà');
-      else setCdsError(err.message);
+      else setCdsError(`Impossible d'ajouter le CDS : ${err.message}`);
       setCdsSaving(false);
       return;
     }
